@@ -5,13 +5,13 @@ pipeline {
 
        stage('SCM Checkout') {
             steps {
-                git credentialsId: '8e237d54-cc07-4aad-a3fe-51855a4d84c1', url: 'https://github.com/pramodk05/java_maven_jenkins.git'
+                git credentialsId: '8c4a71a0-a6eb-4016-9b97-2c4705a6bb50', url: 'https://github.com/pshankar-git/java_maven_tfm_pup_Jenkins.git'
             }
         }
 
         stage('Compile Stage') {
             steps {
-                withMaven(maven : 'maven_3.6') {
+                withMaven(maven : 'maven 3.6.0) {
                     sh 'mvn clean compile'
                 }
             }
@@ -20,7 +20,7 @@ pipeline {
 
         stage('Test Stage') {
             steps {
-                withMaven(maven : 'maven_3.6') {
+                withMaven(maven : 'maven 3.6.0') {
                     sh 'mvn test'
                 }
             }
@@ -29,7 +29,7 @@ pipeline {
 
         stage('Create the Build artifacts Stage (Package)') {
             steps {
-                withMaven(maven : 'maven_3.6') {
+                withMaven(maven : 'maven 3.6.0') {
                     sh 'mvn package'
                 }
             }
@@ -48,7 +48,7 @@ pipeline {
         stage ('Terraform Setup') {
             steps {
                 script {
-                    def tfHome = tool name: 'Terraform_0.12.6', type: 'org.jenkinsci.plugins.terraform.TerraformInstallation'
+                    def tfHome = tool name: 'Terraform_0126', type: 'org.jenkinsci.plugins.terraform.TerraformInstallation'
 
                 }
             sh 'terraform --version'
