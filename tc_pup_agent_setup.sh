@@ -35,16 +35,38 @@ ssh -t ubuntu@$TC_SERVER_PRI_DNS -i "tomcat_ec2_key" -oStrictHostKeyChecking=no 
 	exit;'"
 
 printf "\n\n###########CONFIGURING PUPPET AGENT ON TOMCAT EC2 INSTANCE\n"
-ssh -t ubuntu@$TC_SERVER_PRI_DNS -i "tomcat_ec2_key" -oStrictHostKeyChecking=no "/usr/bin/sudo bash -c 'mv /etc/puppetlabs/puppet/puppet.conf /etc/puppetlabs/puppet/puppet.conf.orig; \
-	echo [main] > /etc/puppetlabs/puppet/puppet.conf; \
-	echo ssldir = /var/lib/puppet/ssl >> /etc/puppetlabs/puppet/puppet.conf; \
-	echo certname = tomcatpuppetagent.ec2.internal >> /etc/puppetlabs/puppet/puppet.conf; \
-	echo server = puppetmaster.ec2.internal >> /etc/puppetlabs/puppet/puppet.conf; \
-	echo environment = production >> /etc/puppetlabs/puppet/puppet.conf; \
-	export PATH=$PATH:/opt/puppetlabs/puppet/bin; \
-	systemctl restart puppet; \
-	systemctl enable puppet; \
-	exit;'"
+ssh_cmd="$(cat <<-EOF
+    ls /home/ubuntu;
+    if [ -e /etc/puppet/puppet.conf ]; then
+        echo "Conf file is /etc/puppet/puppet.conf"
+        mv /etc/puppet/puppet.conf /etc/puppet/puppet.conf.orig
+        echo [agent] > /etc/puppet/puppet.conf
+        echo certname = tomcatpuppetagent.ec2.internal >> /etc/puppet/puppet.conf
+        echo server = puppetmaster.ec2.internal >> /etc/puppet/puppet.conf
+        echo environment = production >> /etc/puppet/puppet.conf
+        systemctl restart puppet
+        systemctl enable puppet
+    else
+        echo "Conf file is /etc/puppetlabs/puppet/puppet.conf"
+        mv /etc/puppetlabs/puppet/puppet.conf /etc/puppetlabs/puppet/puppet.conf.orig
+        echo [agent] > /etc/puppetlabs/puppet/puppet.conf
+        echo certname = tomcatpuppetagent.ec2.internal >> /etc/puppetlabs/puppet/puppet.conf
+        echo server = puppetmaster.ec2.internal >> /etc/puppetlabs/puppet/puppet.conf
+        echo environment = production >> /etc/puppetlabs/puppet/puppet.conf
+        systemctl restart puppet
+        systemctl enable puppet
+    fi
+EOF
+)"
+
+
+ssh -tt ubuntu@$TC_SERVER_PRI_DNS -i tomcat_ec2_key -oStrictHostKeyChecking=no "/usr/bin/sudo bash -c '$ssh_cmd'"
+
+echo $ssh_cmd
+export EXIT_CODE=$?
+export ERR_MSG="Error: ""$ssh_cmd"
+test $EXIT_CODE -ne 0 && $EXIT_CODE $ERR_MSG exit
+	
 
 printf "\n\n############SIGNING PUPPET CERTS FROM PUPPET MASTER FOR NEWLY CREATED TOMCAT PUPPET AGENT\n"
 ssh -i /opt/pup_setup_tf/puppet_ec2_key -t ubuntu@$PUPMASTER_PRI_IP -oStrictHostKeyChecking=no "/usr/bin/sudo bash -c 'echo ${TC_SERVER_PRI_IP} tomcatpuppetagent.ec2.internal ${TC_SERVER_PRI_DNS} >> /etc/hosts; \
